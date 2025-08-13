@@ -15,11 +15,10 @@
     const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
 
     let model, webcam, labelContainer, maxPredictions;
-    let countdownValue = 5;
-    let countdownInterval;
     let modelReady = false;
     let attemptCount = 0; 
-    let audioPlayer = null; 
+    let audioPlayer = null;
+    let countdownInterval = null;
 
     async function initModel() {
         if (!modelReady) {
@@ -51,20 +50,24 @@
     async function startPrediction() {
         await initModel();
 
-        // Dừng nhạc đang phát nếu có
+        // Dừng nhạc cũ
         if (audioPlayer) {
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
         }
 
-        // Reset đếm ngược
-        countdownValue = 5;
-        document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
-
-        if (countdownInterval) clearInterval(countdownInterval);
+        // Dừng đếm ngược cũ nếu còn
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
 
         // Tăng số lần
         attemptCount++;
+
+        // Bắt đầu đếm ngược 5 giây
+        let countdownValue = 5;
+        document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
 
         countdownInterval = setInterval(async () => {
             countdownValue--;
@@ -72,15 +75,15 @@
 
             if (countdownValue <= 0) {
                 clearInterval(countdownInterval);
-                await predict(attemptCount); 
+                countdownInterval = null; // reset trạng thái
+                await predict(attemptCount);
                 document.getElementById("countdown").innerText = "Hoàn thành!";
             }
         }, 1000);
     }
 
     async function predict(attemptNumber) {
-        // Đảm bảo lấy frame mới nhất
-        webcam.update();
+        webcam.update(); // đảm bảo ảnh mới
 
         const prediction = await model.predict(webcam.canvas);
         let highestClass = "";

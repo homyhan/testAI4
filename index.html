@@ -10,7 +10,7 @@
     const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
 
     let model, webcam, labelContainer, maxPredictions;
-    let lastClass = ""; // để tránh lặp âm thanh liên tục
+    let lastClass = "";
 
     async function init() {
         const modelURL = URL + "model.json";
@@ -48,26 +48,29 @@
                 prediction[i].className + ": " + prediction[i].probability.toFixed(2);
             labelContainer.childNodes[i].innerHTML = classPrediction;
 
-            // tìm lớp có xác suất cao nhất
             if (prediction[i].probability > highestProb) {
                 highestProb = prediction[i].probability;
                 highestClass = prediction[i].className;
             }
         }
 
-        // nếu xác suất > 0.8 và lớp khác lần trước -> hành động
+        // hành động khi xác suất > 0.8 và không trùng lastClass
         if (highestProb > 0.8 && highestClass !== lastClass) {
             lastClass = highestClass;
-            if (highestClass === "số 1") {
+
+            if (highestClass === "1") {
                 document.body.style.backgroundColor = "red";
-                playSound("happy.mp3");
-            } else if (highestClass === "số 2") {
+                playSound("so1.mp3");
+            } else if (highestClass === "2") {
                 document.body.style.backgroundColor = "blue";
-                playSound("sad.mp3");
-            } else if (highestClass === "số 3") {
+                playSound("so2.mp3");
+            } else if (highestClass === "3") {
                 document.body.style.backgroundColor = "yellow";
-                playSound("surprise.mp3");
+                playSound("so3.mp3");
             }
+
+            // reset lastClass sau 2 giây
+            setTimeout(() => lastClass = "", 2000);
         }
     }
 
@@ -76,3 +79,4 @@
         audio.play();
     }
 </script>
+

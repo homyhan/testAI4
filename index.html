@@ -1,6 +1,7 @@
 <div>Teachable Machine Image Model</div>
 <button type="button" onclick="init()">Start</button>
 <div id="webcam-container"></div>
+<div id="countdown" style="font-size:24px; margin-top:10px; color:green;"></div>
 <div id="label-container"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
@@ -10,7 +11,9 @@
     const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
 
     let model, webcam, labelContainer, maxPredictions;
-    let lastClass = ""; // để tránh lặp âm thanh liên tục
+    let lastClass = "";
+    let countdownValue = 5; // thời gian đếm ngược
+    let countdownInterval;
 
     async function init() {
         const modelURL = URL + "model.json";
@@ -30,12 +33,29 @@
         for (let i = 0; i < maxPredictions; i++) {
             labelContainer.appendChild(document.createElement("div"));
         }
+
+        // bắt đầu đếm ngược
+        startCountdown();
     }
 
-    async function loop() {
+    function loop() {
         webcam.update();
-        await predict();
         window.requestAnimationFrame(loop);
+    }
+
+    function startCountdown() {
+        const countdownEl = document.getElementById("countdown");
+        countdownEl.innerText = `Dự đoán sau: ${countdownValue} giây`;
+
+        countdownInterval = setInterval(async () => {
+            countdownValue--;
+            countdownEl.innerText = `Dự đoán sau: ${countdownValue} giây`;
+
+            if (countdownValue <= 0) {
+                await predict(); // gọi dự đoán
+                countdownValue = 5; // reset về 5 giây
+            }
+        }, 1000);
     }
 
     async function predict() {
@@ -48,14 +68,12 @@
                 prediction[i].className + ": " + prediction[i].probability.toFixed(2);
             labelContainer.childNodes[i].innerHTML = classPrediction;
 
-            // tìm lớp có xác suất cao nhất
             if (prediction[i].probability > highestProb) {
                 highestProb = prediction[i].probability;
                 highestClass = prediction[i].className;
             }
         }
 
-        // nếu xác suất > 0.8 và lớp khác lần trước -> hành động
         if (highestProb > 0.8 && highestClass !== lastClass) {
             lastClass = highestClass;
             if (highestClass === "1") {

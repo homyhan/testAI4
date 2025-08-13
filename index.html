@@ -7,20 +7,31 @@
 <div id="progress-container" style="width:220px; margin-top:10px;">
     <div>
         <div style="color:red;">1</div>
-        <div id="bar1" style="height:20px; background:red; width:0%;"></div>
+        <div id="bar1" class="progress red"></div>
     </div>
     <div>
         <div style="color:blue;">2</div>
-        <div id="bar2" style="height:20px; background:blue; width:0%;"></div>
+        <div id="bar2" class="progress blue"></div>
     </div>
     <div>
         <div style="color:orange;">3</div>
-        <div id="bar3" style="height:20px; background:orange; width:0%;"></div>
+        <div id="bar3" class="progress orange"></div>
     </div>
 </div>
 
 <div id="label-container"></div>
 <div id="history" style="margin-top:10px;"></div>
+
+<style>
+    .progress {
+        height: 20px;
+        width: 0%;
+        transition: width 0.3s ease; /* mượt hơn */
+    }
+    .red { background: red; }
+    .blue { background: blue; }
+    .orange { background: orange; }
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
@@ -30,6 +41,7 @@
     let model, webcam, labelContainer, maxPredictions;
     let countdownValue = 5, countdownInterval, progressInterval;
     let attemptCount = 0;
+    let currentAudio = null; // để lưu nhạc đang phát
 
     async function initModel() {
         if (!model) {
@@ -52,15 +64,21 @@
 
     async function startPrediction() {
         await initModel();
-        document.body.style.backgroundColor = "white";
         attemptCount++;
         countdownValue = 5;
         document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
 
+        // Dừng nhạc đang phát nếu có
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio = null;
+        }
+
         if (countdownInterval) clearInterval(countdownInterval);
         if (progressInterval) clearInterval(progressInterval);
 
-        // Cập nhật progress bar liên tục trong 5 giây
+        // Cập nhật progress bar liên tục
         progressInterval = setInterval(updateProgressBars, 200);
 
         countdownInterval = setInterval(async () => {
@@ -80,11 +98,8 @@
         webcam.update();
         const prediction = await model.predict(webcam.canvas);
 
-        // Thanh 1
         document.getElementById("bar1").style.width = (prediction[0].probability * 100) + "%";
-        // Thanh 2
         document.getElementById("bar2").style.width = (prediction[1].probability * 100) + "%";
-        // Thanh 3
         document.getElementById("bar3").style.width = (prediction[2].probability * 100) + "%";
     }
 
@@ -102,7 +117,7 @@
             }
         }
 
-        // Lưu lịch sử luôn
+        // Lưu lịch sử
         const historyEl = document.getElementById("history");
         const timeNow = new Date().toLocaleTimeString();
         const resultItem = document.createElement("div");
@@ -125,7 +140,11 @@
     }
 
     function playSound(file) {
-        const audio = new Audio(file);
-        audio.play();
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+        }
+        currentAudio = new Audio(file);
+        currentAudio.play();
     }
 </script>

@@ -1,5 +1,5 @@
 <div>Teachable Machine Image Model</div>
-<button type="button" onclick="init()">Start</button>
+<button type="button" onclick="startPrediction()">Start</button>
 <div id="webcam-container"></div>
 <div id="countdown" style="font-size:24px; margin-top:10px; color:green;"></div>
 <div id="label-container"></div>
@@ -12,30 +12,30 @@
 
     let model, webcam, labelContainer, maxPredictions;
     let lastClass = "";
-    let countdownValue = 5; // thời gian đếm ngược
+    let countdownValue = 5;
     let countdownInterval;
+    let modelReady = false;
 
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
+    async function initModel() {
+        if (!modelReady) {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
 
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
+            const flip = true;
+            webcam = new tmImage.Webcam(200, 200, flip);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
 
-        const flip = true;
-        webcam = new tmImage.Webcam(200, 200, flip);
-        await webcam.setup();
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) {
-            labelContainer.appendChild(document.createElement("div"));
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+            modelReady = true;
         }
-
-        // bắt đầu đếm ngược
-        startCountdown();
     }
 
     function loop() {
@@ -43,17 +43,21 @@
         window.requestAnimationFrame(loop);
     }
 
-    function startCountdown() {
-        const countdownEl = document.getElementById("countdown");
-        countdownEl.innerText = `Dự đoán sau: ${countdownValue} giây`;
+    async function startPrediction() {
+        await initModel(); // tải model nếu chưa tải
+        countdownValue = 5;
+        document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
+
+        if (countdownInterval) clearInterval(countdownInterval);
 
         countdownInterval = setInterval(async () => {
             countdownValue--;
-            countdownEl.innerText = `Dự đoán sau: ${countdownValue} giây`;
+            document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
 
             if (countdownValue <= 0) {
-                await predict(); // gọi dự đoán
-                countdownValue = 5; // reset về 5 giây
+                clearInterval(countdownInterval);
+                await predict(); // dự đoán 1 lần
+                document.getElementById("countdown").innerText = "Hoàn thành!";
             }
         }, 1000);
     }

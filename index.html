@@ -49,6 +49,7 @@
 
     async function startPrediction() {
         await initModel();
+        document.body.style.backgroundColor = "white";
 
         // Dừng nhạc cũ
         if (audioPlayer) {

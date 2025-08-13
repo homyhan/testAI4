@@ -15,12 +15,11 @@
     const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
 
     let model, webcam, labelContainer, maxPredictions;
-    let lastClass = "";
     let countdownValue = 5;
     let countdownInterval;
     let modelReady = false;
-    let attemptCount = 0; // số lần dự đoán
-    let audioPlayer = null; // để điều khiển nhạc
+    let attemptCount = 0; 
+    let audioPlayer = null; 
 
     async function initModel() {
         if (!modelReady) {
@@ -73,13 +72,16 @@
 
             if (countdownValue <= 0) {
                 clearInterval(countdownInterval);
-                await predict(attemptCount); // gửi attemptCount vào
+                await predict(attemptCount); 
                 document.getElementById("countdown").innerText = "Hoàn thành!";
             }
         }, 1000);
     }
 
     async function predict(attemptNumber) {
+        // Đảm bảo lấy frame mới nhất
+        webcam.update();
+
         const prediction = await model.predict(webcam.canvas);
         let highestClass = "";
         let highestProb = 0;
@@ -96,12 +98,11 @@
         }
 
         if (highestProb > 0.8) {
-            lastClass = highestClass;
-
             // Lưu lịch sử
             const historyEl = document.getElementById("history");
             const resultItem = document.createElement("div");
-            resultItem.innerText = `Lần ${attemptNumber}: ${highestClass} (${highestProb.toFixed(2)})`;
+            const timeNow = new Date().toLocaleTimeString();
+            resultItem.innerText = `Lần ${attemptNumber} (${timeNow}): ${highestClass} (${highestProb.toFixed(2)})`;
             historyEl.appendChild(resultItem);
 
             // Đổi màu nền + phát nhạc

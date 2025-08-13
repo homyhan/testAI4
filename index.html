@@ -1,74 +1,67 @@
 <div>Teachable Machine Image Model</div>
-<button type="button" id="startBtn" onclick="startPrediction()">Start</button>
+<button type="button" onclick="startPrediction()">Start</button>
 <div id="webcam-container"></div>
 <div id="countdown" style="font-size:24px; margin-top:10px; color:green;"></div>
-<div id="label-container"></div>
-<hr>
-<div id="history" style="margin-top:20px;">
-    <h3>Lịch sử dự đoán</h3>
+
+<!-- Progress bars -->
+<div id="progress-container" style="width:220px; margin-top:10px;">
+    <div>
+        <div style="color:red;">1</div>
+        <div id="bar1" style="height:20px; background:red; width:0%;"></div>
+    </div>
+    <div>
+        <div style="color:blue;">2</div>
+        <div id="bar2" style="height:20px; background:blue; width:0%;"></div>
+    </div>
+    <div>
+        <div style="color:orange;">3</div>
+        <div id="bar3" style="height:20px; background:orange; width:0%;"></div>
+    </div>
 </div>
+
+<div id="label-container"></div>
+<div id="history" style="margin-top:10px;"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
     const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
-
     let model, webcam, labelContainer, maxPredictions;
-    let modelReady = false;
-    let attemptCount = 0; 
-    let audioPlayer = null;
-    let countdownInterval = null;
+    let countdownValue = 5, countdownInterval, progressInterval;
+    let attemptCount = 0;
 
     async function initModel() {
-        if (!modelReady) {
+        if (!model) {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            const flip = true;
-            webcam = new tmImage.Webcam(200, 200, flip);
+            webcam = new tmImage.Webcam(200, 200, true);
             await webcam.setup();
             await webcam.play();
-            window.requestAnimationFrame(loop);
-
             document.getElementById("webcam-container").appendChild(webcam.canvas);
+
             labelContainer = document.getElementById("label-container");
             for (let i = 0; i < maxPredictions; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
-            modelReady = true;
         }
-    }
-
-    function loop() {
-        webcam.update();
-        window.requestAnimationFrame(loop);
     }
 
     async function startPrediction() {
         await initModel();
         document.body.style.backgroundColor = "white";
-
-        // Dừng nhạc cũ
-        if (audioPlayer) {
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
-        }
-
-        // Dừng đếm ngược cũ nếu còn
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
-
-        // Tăng số lần
         attemptCount++;
-
-        // Bắt đầu đếm ngược 5 giây
-        let countdownValue = 5;
+        countdownValue = 5;
         document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
+
+        if (countdownInterval) clearInterval(countdownInterval);
+        if (progressInterval) clearInterval(progressInterval);
+
+        // Cập nhật progress bar liên tục trong 5 giây
+        progressInterval = setInterval(updateProgressBars, 200);
 
         countdownInterval = setInterval(async () => {
             countdownValue--;
@@ -76,40 +69,48 @@
 
             if (countdownValue <= 0) {
                 clearInterval(countdownInterval);
-                countdownInterval = null; // reset trạng thái
+                clearInterval(progressInterval);
                 await predict(attemptCount);
                 document.getElementById("countdown").innerText = "Hoàn thành!";
             }
         }, 1000);
     }
 
-    async function predict(attemptNumber) {
-        webcam.update(); // đảm bảo ảnh mới
-
+    async function updateProgressBars() {
+        webcam.update();
         const prediction = await model.predict(webcam.canvas);
-        let highestClass = "";
-        let highestProb = 0;
 
+        // Thanh 1
+        document.getElementById("bar1").style.width = (prediction[0].probability * 100) + "%";
+        // Thanh 2
+        document.getElementById("bar2").style.width = (prediction[1].probability * 100) + "%";
+        // Thanh 3
+        document.getElementById("bar3").style.width = (prediction[2].probability * 100) + "%";
+    }
+
+    async function predict(attemptNumber) {
+        webcam.update();
+        const prediction = await model.predict(webcam.canvas);
+
+        let highestClass = "", highestProb = 0;
         for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+            const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
             labelContainer.childNodes[i].innerHTML = classPrediction;
-
             if (prediction[i].probability > highestProb) {
                 highestProb = prediction[i].probability;
                 highestClass = prediction[i].className;
             }
         }
 
-        if (highestProb > 0.8) {
-            // Lưu lịch sử
-            const historyEl = document.getElementById("history");
-            const resultItem = document.createElement("div");
-            const timeNow = new Date().toLocaleTimeString();
-            resultItem.innerText = `Lần ${attemptNumber} (${timeNow}): ${highestClass} (${highestProb.toFixed(2)})`;
-            historyEl.appendChild(resultItem);
+        // Lưu lịch sử luôn
+        const historyEl = document.getElementById("history");
+        const timeNow = new Date().toLocaleTimeString();
+        const resultItem = document.createElement("div");
+        resultItem.innerText = `Lần ${attemptNumber} (${timeNow}): ${highestClass} (${highestProb.toFixed(2)})`;
+        historyEl.appendChild(resultItem);
 
-            // Đổi màu nền + phát nhạc
+        // Đổi nền + nhạc nếu xác suất > 0.8
+        if (highestProb > 0.8) {
             if (highestClass === "1") {
                 document.body.style.backgroundColor = "red";
                 playSound("happy.mp3");
@@ -124,7 +125,7 @@
     }
 
     function playSound(file) {
-        audioPlayer = new Audio(file);
-        audioPlayer.play();
+        const audio = new Audio(file);
+        audio.play();
     }
 </script>

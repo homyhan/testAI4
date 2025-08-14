@@ -1,0 +1,28 @@
+.progress {
+        height: 20px;
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+      .red {
+        background: red;
+      }
+      .blue {
+        background: blue;
+      }
+      .orange {
+        background: orange;
+      }
+      .history-item {
+        border: 1px solid #ccc;
+        padding: 6px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .history-item img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border: 1px solid #aaa;
+      }

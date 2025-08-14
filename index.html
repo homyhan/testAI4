@@ -1,93 +1,115 @@
-<div>Teachable Machine Image Model</div>
-<button type="button" onclick="startPrediction()">Start</button>
-<div id="webcam-container"></div>
-<div id="countdown" style="font-size:24px; margin-top:10px; color:green;"></div>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
 
-<!-- Progress bars -->
-<div id="progress-container" style="width:220px; margin-top:10px;">
-    <div>
-        <div style="color:red;">1</div>
-        <div id="bar1" class="progress red"></div>
-    </div>
-    <div>
-        <div style="color:blue;">2</div>
-        <div id="bar2" class="progress blue"></div>
-    </div>
-    <div>
-        <div style="color:orange;">3</div>
-        <div id="bar3" class="progress orange"></div>
-    </div>
-</div>
-
-<div id="label-container"></div>
-<div id="history" style="margin-top:10px;"></div>
-
-<style>
-    .progress {
+    <style>
+      .progress {
         height: 20px;
         width: 0%;
         transition: width 0.3s ease;
-    }
-    .red { background: red; }
-    .blue { background: blue; }
-    .orange { background: orange; }
-    .history-item {
+      }
+      .red {
+        background: red;
+      }
+      .blue {
+        background: blue;
+      }
+      .orange {
+        background: orange;
+      }
+      .history-item {
         border: 1px solid #ccc;
         padding: 6px;
         margin-bottom: 6px;
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-    .history-item img {
+      }
+      .history-item img {
         width: 60px;
         height: 60px;
         object-fit: cover;
         border: 1px solid #aaa;
-    }
-</style>
+      }
+    </style>
+  </head>
+  <body>
+    <div>Teachable Machine Image Model</div>
+    <button type="button" onclick="startPrediction()">Start</button>
+    <div id="webcam-container"></div>
+    <div
+      id="countdown"
+      style="font-size: 24px; margin-top: 10px; color: green"
+    ></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <!-- Progress bars -->
+    <div id="progress-container" style="width: 220px; margin-top: 10px">
+      <div>
+        <div style="color: red">1</div>
+        <div id="bar1" class="progress red"></div>
+      </div>
+      <div>
+        <div style="color: blue">2</div>
+        <div id="bar2" class="progress blue"></div>
+      </div>
+      <div>
+        <div style="color: orange">3</div>
+        <div id="bar3" class="progress orange"></div>
+      </div>
+    </div>
 
-<script>
-    // const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
-    const URL = "https://teachablemachine.withgoogle.com/models/Rn6MVZ6kF/"
-    let model, webcam, labelContainer, maxPredictions;
-    let countdownValue = 5, countdownInterval, progressInterval;
-    let attemptCount = 0;
-    let currentAudio = null;
+    <div id="label-container"></div>
+    <div id="history" style="margin-top: 10px"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-    async function initModel() {
+    <script>
+      // const URL = "https://teachablemachine.withgoogle.com/models/rdcqB69I8/";
+      const URL = "https://teachablemachine.withgoogle.com/models/Rn6MVZ6kF/"; // tay 207
+      let model, webcam, labelContainer, maxPredictions;
+      let countdownValue = 5,
+        countdownInterval,
+        progressInterval;
+      let attemptCount = 0;
+      let currentAudio = null;
+
+      async function initModel() {
         if (!model) {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
+          const modelURL = URL + "model.json";
+          const metadataURL = URL + "metadata.json";
+          model = await tmImage.load(modelURL, metadataURL);
+          maxPredictions = model.getTotalClasses();
 
-            webcam = new tmImage.Webcam(200, 200, true);
-            await webcam.setup();
-            await webcam.play();
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
+          webcam = new tmImage.Webcam(200, 200, true);
+          await webcam.setup();
+          await webcam.play();
+          document
+            .getElementById("webcam-container")
+            .appendChild(webcam.canvas);
 
-            labelContainer = document.getElementById("label-container");
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement("div"));
-            }
+          labelContainer = document.getElementById("label-container");
+          for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+          }
         }
-    }
+      }
 
-    async function startPrediction() {
+      async function startPrediction() {
         await initModel();
         document.body.style.backgroundColor = "white";
         attemptCount++;
         countdownValue = 5;
-        document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
+        document.getElementById(
+          "countdown"
+        ).innerText = `Dự đoán sau: ${countdownValue} giây`;
 
         if (currentAudio) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-            currentAudio = null;
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          currentAudio = null;
         }
 
         if (countdownInterval) clearInterval(countdownInterval);
@@ -96,39 +118,48 @@
         progressInterval = setInterval(updateProgressBars, 200);
 
         countdownInterval = setInterval(async () => {
-            countdownValue--;
-            document.getElementById("countdown").innerText = `Dự đoán sau: ${countdownValue} giây`;
+          countdownValue--;
+          document.getElementById(
+            "countdown"
+          ).innerText = `Dự đoán sau: ${countdownValue} giây`;
 
-            if (countdownValue <= 0) {
-                clearInterval(countdownInterval);
-                clearInterval(progressInterval);
-                await predict(attemptCount);
-                document.getElementById("countdown").innerText = "Hoàn thành!";
-            }
+          if (countdownValue <= 0) {
+            clearInterval(countdownInterval);
+            clearInterval(progressInterval);
+            await predict(attemptCount);
+            document.getElementById("countdown").innerText = "Hoàn thành!";
+          }
         }, 1000);
-    }
+      }
 
-    async function updateProgressBars() {
+      async function updateProgressBars() {
         webcam.update();
         const prediction = await model.predict(webcam.canvas);
 
-        document.getElementById("bar1").style.width = (prediction[0].probability * 100) + "%";
-        document.getElementById("bar2").style.width = (prediction[1].probability * 100) + "%";
-        document.getElementById("bar3").style.width = (prediction[2].probability * 100) + "%";
-    }
+        document.getElementById("bar1").style.width =
+          prediction[0].probability * 100 + "%";
+        document.getElementById("bar2").style.width =
+          prediction[1].probability * 100 + "%";
+        document.getElementById("bar3").style.width =
+          prediction[2].probability * 100 + "%";
+      }
 
-    async function predict(attemptNumber) {
+      async function predict(attemptNumber) {
         webcam.update();
         const prediction = await model.predict(webcam.canvas);
 
-        let highestClass = "", highestProb = 0;
+        let highestClass = "",
+          highestProb = 0;
         for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            labelContainer.childNodes[i].innerHTML = classPrediction;
-            if (prediction[i].probability > highestProb) {
-                highestProb = prediction[i].probability;
-                highestClass = prediction[i].className;
-            }
+          const classPrediction =
+            prediction[i].className +
+            ": " +
+            prediction[i].probability.toFixed(2);
+          labelContainer.childNodes[i].innerHTML = classPrediction;
+          if (prediction[i].probability > highestProb) {
+            highestProb = prediction[i].probability;
+            highestClass = prediction[i].className;
+          }
         }
 
         // Chụp ảnh hiện tại từ webcam
@@ -141,30 +172,34 @@
         resultItem.className = "history-item";
         resultItem.innerHTML = `
             <img src="${snapshot}" alt="Snapshot">
-            <div>Lần ${attemptNumber} (${timeNow}): ${highestClass} (${highestProb.toFixed(2)})</div>
+            <div>Lần ${attemptNumber} (${timeNow}): ${highestClass} (${highestProb.toFixed(
+          2
+        )})</div>
         `;
         historyEl.appendChild(resultItem);
 
         if (highestProb > 0.8) {
-            if (highestClass === "1") {
-                document.body.style.backgroundColor = "red";
-                playSound("happy.mp3");
-            } else if (highestClass === "2") {
-                document.body.style.backgroundColor = "blue";
-                playSound("sad.mp3");
-            } else if (highestClass === "3") {
-                document.body.style.backgroundColor = "yellow";
-                playSound("surprise.mp3");
-            }
+          if (highestClass === "1") {
+            document.body.style.backgroundColor = "red";
+            playSound("happy.mp3");
+          } else if (highestClass === "2") {
+            document.body.style.backgroundColor = "blue";
+            playSound("sad.mp3");
+          } else if (highestClass === "3") {
+            document.body.style.backgroundColor = "yellow";
+            playSound("surprise.mp3");
+          }
         }
-    }
+      }
 
-    function playSound(file) {
+      function playSound(file) {
         if (currentAudio) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
         }
         currentAudio = new Audio(file);
         currentAudio.play();
-    }
-</script>
+      }
+    </script>
+  </body>
+</html>
